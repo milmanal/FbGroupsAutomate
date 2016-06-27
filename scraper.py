@@ -4,6 +4,7 @@ import smtplib
 import sys
 import time
 import re
+import os.path
 from getpass import getpass
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -16,12 +17,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from wdstart import start_webdriver
+from sendEmail import send_email
 
 
 class FacebookBot:
-    def __init__(self, emailpassword):
+    def __init__(self):
         config = ConfigParser()
-        config.read('config.ini')
+        #config.read('config.ini')
+        config.read_file(open('config.ini', mode='r', encoding='utf8'))
 
         #try:
         #    self.send_email('milmanao@gmail.com', password='111', to='milmanao@gmail.com',
@@ -34,20 +37,20 @@ class FacebookBot:
             sys.exit()
 
         try:
-            self.login_username = config.get('SETTINGS','Username')
             self.group_url = config.get('SETTINGS','GroupURL')
             self.search_text = config.get('SETTINGS','SearchText')
             self.price_low = config.get('SETTINGS','PriceLow')
             self.price_high = config.get('SETTINGS','PriceHigh')
             profile_folder = config.get('SETTINGS','FirefoxProfileFolder')
-            self.scrolls = int(config.get('SETTINGS','NoOfScrolls'))
+            self.scrolls_init = int(config.get('SETTINGS','NoOfInitialScrolls'))
+            self.scrolls_next = int(config.get('SETTINGS','NoOfScrollsInRecurring'))
+            self.is_first_scroll = True
             self.sender_mail = config.get('SETTINGS','SenderMail')
             self.destination_mail = config.get('SETTINGS','DestinationMail')
         except (KeyError, TypeError):
             print('Config file not configured properly!')
             sys.exit()                        
 
-        self.sender_mail_password = emailpassword
         self.driver = start_webdriver(driver_name='Firefox', profile_path=profile_folder)
 
     def facebook_login(self):
@@ -65,10 +68,15 @@ class FacebookBot:
         self.driver.get(self.group_url)
         body = self.driver.find_element_by_tag_name('body')
 
-        for x in range(self.scrolls):
-            body.send_keys(Keys.END)
-            time.sleep(2)
-
+        if self.is_first_scroll:
+            for x in range(self.scrolls_init):
+                body.send_keys(Keys.END)
+                time.sleep(2)
+            self.is_first_scroll = False
+        else:
+            for x in range(self.scrolls_next):
+                body.send_keys(Keys.END)
+                time.sleep(2)
         see_mores = self.driver.find_elements_by_xpath('//a[@class="see_more_link"]')
         for see_more in see_mores:
             self.driver.execute_script('return arguments[0].scrollIntoView();', see_more)
@@ -84,15 +92,23 @@ class FacebookBot:
 
         for post in posts:
             #text = '\n'.join(post.xpath('.//div[@class="_5pbx userContent"]/div[1]/div[1]/p/text()'))
-            text = post.find_element_by_xpath('.//div[contains(@class,"userContent")]').get_attribute('textContent')
             try:
+                text = post.find_element_by_xpath('.//div[contains(@class,"userContent")]').get_attribute('textContent')
                 #link = post.xpath('.//a[@class="_5pcq"]/@href')[0]
                 link = post.find_element_by_xpath('.//a[contains(@href,"/permalink")]').get_attribute('href')
                 #link =  post.find_element_by_css_selector('div._1dwg._1w_m > div._5x46 > div > div > div._5va4 > div > div > div._6a._5u5j._6b > div > span > span > a').get_attribute('href')
-            except IndexError:
-                continue
+                self.posts_data.append([text, link])
 
-            self.posts_data.append([text, link])
+            except:
+                try:
+                    text = post.get_attribute('textContent')
+                    link = post.find_element_by_xpath('.//a[contains(@href,"/permalink")]').get_attribute('href')
+                    #link =  post.find_element_by_css_selector('div._1dwg._1w_m > div._5x46 > div > div > div._5va4 > div > div > div._6a._5u5j._6b > div > span > span > a').get_attribute('href')
+                    self.posts_data.append([text, link])
+
+                except:
+                    continue
+
 
     def filter_posts(self):
         self.filtered_posts = []
@@ -104,9 +120,6 @@ class FacebookBot:
                 if price <= self.price_high and price >= self.price_low:
                     self.filtered_posts.append(post)
 
-        #for post in self.filtered_posts:
-        #    post[1] = 'http://www.facebook.com' + post[1]
-
     def send_email(self, sender, password, to, subject, message_text):
         msg = MIMEMultipart()
         msg['From'] = sender
@@ -116,28 +129,39 @@ class FacebookBot:
         msg.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))
         server = smtplib.SMTP('smtpout.asia.secureserver.net')
         #server.starttls()
-        server.login('michael@shimeba.com', '')
+        server.login('michael@shimeba.com', 'matzui1G')
         text = msg.as_string()
         server.sendmail(sender, to, text)
         server.quit()
 
     def save_data(self):
         now = datetime.now()
-        date_time = now.strftime('%Y-%m-%d-%H-%M-%S')
+        #date_time = now.strftime('%Y-%m-%d-%H-%M-%S')
         message_text = u'Message: {}\nLink: {}\n\n'
-
-        with codecs.open(date_time + '.csv', mode='wb') as f:
-            output_writer = csv.writer(f)
-
+        text1 = u'מודעה'
+        text2 = u'לינק'
+        links = []
+        message_text = u'<table style="width:100%"> <tr> <th>'+text1+'</th> <th>'+text2+'</th> </tr>'
+        if os.path.isfile('links.csv'):
+            with open('links.csv', 'rt') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    links.append(str(row))
+        new_results = False
+        with open('links.csv', mode='a', encoding='utf-8', newline='\n') as f:
+            output_writer = csv.writer(f)            
             for item in self.filtered_posts:
-                output_writer.writerow(str(item[1]))
-                message_text += item[0]+'\t'+ item[1]
-
-        try:
-            self.send_email(sender=self.sender_mail, password=self.sender_mail_password, to=self.destination_mail,
+                if str([item[1]]) not in links:
+                    new_results = True
+                    output_writer.writerow([item[1]])
+                    message_text += '<tr> <td>'+ item[0]+'</td> <td>'+ item[1] + ' </td> </tr>'
+        message_text += '</table>'
+        if new_results:
+            try:
+                send_email(sender=self.sender_mail, to=self.destination_mail,
                         subject='FBGroupScraper Notification', message_text=message_text)
-        except:
-            pass
+            except:
+                pass
 
     def execute(self):
         self.scrape_posts()
@@ -145,11 +169,10 @@ class FacebookBot:
         self.filter_posts()
         self.save_data()
 
-
+sys.modules['win32file'] = None
 x = int(input('Enter the time of interval between each runs of this script (in minutes): '))
-emailpassword = getpass('Enter your Email account\'s password: ')
 
 while True:
-    bot = FacebookBot(emailpassword)
+    bot = FacebookBot()
     bot.execute()
     time.sleep(x*60)
