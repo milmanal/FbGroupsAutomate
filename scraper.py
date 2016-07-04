@@ -41,7 +41,8 @@ class FacebookBot:
             self.search_text = config.get('SETTINGS','SearchText')
             self.price_low = config.get('SETTINGS','PriceLow')
             self.price_high = config.get('SETTINGS','PriceHigh')
-            profile_folder = config.get('SETTINGS','FirefoxProfileFolder')
+            ff_profile_folder = config.get('SETTINGS','FirefoxProfileFolder')
+            chrome_profile_folder = config.get('SETTINGS','ChromeProfileFolder')
             self.scrolls_init = int(config.get('SETTINGS','NoOfInitialScrolls'))
             self.scrolls_next = int(config.get('SETTINGS','NoOfScrollsInRecurring'))
             self.is_first_scroll = True
@@ -51,7 +52,8 @@ class FacebookBot:
             print('Config file not configured properly!')
             sys.exit()                        
 
-        self.driver = start_webdriver(driver_name='Firefox', profile_path=profile_folder)
+        self.driver = start_webdriver(driver_name='Firefox', profile_path=ff_profile_folder)
+        #self.driver = start_webdriver(driver_name='chrome', profile_path=chrome_profile_folder)
 
     def facebook_login(self):
         self.driver.get('http://www.facebook.com')
@@ -129,7 +131,7 @@ class FacebookBot:
         msg.attach(MIMEText(body.encode('utf-8'), 'plain', 'utf-8'))
         server = smtplib.SMTP('smtpout.asia.secureserver.net')
         #server.starttls()
-        server.login('michael@shimeba.com', 'matzui1G')
+        server.login('michael@shimeba.com', '')
         text = msg.as_string()
         server.sendmail(sender, to, text)
         server.quit()
