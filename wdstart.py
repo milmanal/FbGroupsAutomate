@@ -105,6 +105,7 @@ def start_webdriver(driver_name, user_agent=None, profile_path=None):
             opt.add_argument('user-agent={user_agent}'.format(user_agent=user_agent))
         if profile_path:
             opt.add_argument('user-data-dir={profile_path}'.format(profile_path=profile_path))
+        opt.add_argument('--disable-application-cache')
 
         chromedriver_path = find_binary_file('chromedriver')
         driver = webdriver.Chrome(chromedriver_path, chrome_options=opt)
