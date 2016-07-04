@@ -3,8 +3,8 @@
 block_cipher = None
 
 
-a = Analysis(['scraper.py', 'wdstart.py'],
-             pathex=['C:\\Users\\Sumit\\OneDrive\\Projects\\Working\\FBGroupScraper\\FBGroupScraper'],
+a = Analysis(['scraper.py', 'wdstart.py', 'sendEmail.py'],
+             pathex=['F:\\Users\\mlmn\\Downloads\\FBGroupScraper\\Delivery2\\Delivery\\FBGroupScraper-Source'],
              binaries=None,
              datas=None,
              hiddenimports=[],
