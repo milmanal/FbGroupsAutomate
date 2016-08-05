@@ -9,6 +9,7 @@ import urllib
 
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from copyProfile import copy_files
 
 
 def find_file(name, path):
@@ -57,6 +58,8 @@ def start_selenium_server():
     cmd = ['java', '-jar', seleniumserver_path]
     subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
 
+temp_dir_path = os.path.join(os.environ['APPDATA'], 'Google\\Chrome\\User Data 01').replace('Roaming','Local')
+user_dir = os.path.join(os.environ['APPDATA'], 'Google\\Chrome\\User Data').replace('Roaming','Local')
 
 def start_webdriver(driver_name, user_agent=None, profile_path=None):
     """Starts and returns a Selenium Webdriver.
@@ -101,13 +104,15 @@ def start_webdriver(driver_name, user_agent=None, profile_path=None):
 
     if driver_name == 'chrome':
         opt = webdriver.chrome.options.Options()
-        if user_agent:
-            opt.add_argument('user-agent={user_agent}'.format(user_agent=user_agent))
-        if profile_path:
-            opt.add_argument('user-data-dir={profile_path}'.format(profile_path=profile_path))
+        #if user_agent:
+        #    opt.add_argument('user-agent={user_agent}'.format(user_agent=user_agent))
+        #if profile_path:
+        #    opt.add_argument('user-data-dir={profile_path}'.format(profile_path=profile_path))
         opt.add_argument('--disable-application-cache')
 
         chromedriver_path = find_binary_file('chromedriver')
+        copy_files(user_dir, temp_dir_path)
+        opt.add_argument('user-data-dir='+temp_dir_path)
         driver = webdriver.Chrome(chromedriver_path, chrome_options=opt)
 
     if driver_name == 'phantomjs':

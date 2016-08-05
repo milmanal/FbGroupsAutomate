@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['scraper.py', 'wdstart.py', 'sendEmail.py'],
+a = Analysis(['scraper.py', 'wdstart.py', 'sendEmail.py', 'copyProfile.py'],
              pathex=['F:\\Users\\mlmn\\Downloads\\FBGroupScraper\\Delivery2\\Delivery\\FBGroupScraper-Source'],
              binaries=None,
              datas=None,
